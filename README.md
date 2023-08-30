@@ -2,7 +2,22 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
-First, run the development server:
+First install the repo
+
+```bash
+# With ssk key (recomended)
+git clone git@github.com:kaptencodyz/SC-HR-L.git
+# With https
+git clone https://github.com/kaptencodyz/SC-HR-L.git
+```
+
+Then install all dependencies
+
+```bash
+npm install
+```
+
+Run the development server:
 
 ```bash
 npm run dev
