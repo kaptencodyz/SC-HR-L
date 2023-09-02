@@ -1,7 +1,11 @@
-import NavBar from '../components/navbar'
+import Frankscomponent from "@/components/Frankscomponent";
+import NavBar from "../components/navbar";
 
 export default function Home() {
   return (
-    <NavBar />
-  )
+    <>
+      <Frankscomponent />
+      <NavBar />
+    </>
+  );
 }
