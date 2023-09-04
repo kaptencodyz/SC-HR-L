@@ -4,7 +4,7 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 First install the repo
 
-- With ssk key (recomended)
+- With ssk key (dev)
 ```bash
 git clone git@github.com:kaptencodyz/SC-HR-L.git
 ```
