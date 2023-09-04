@@ -2,21 +2,20 @@ CREATE TABLE `users` (
   `id` integer PRIMARY KEY,
   `handle` varchar(255),
   `status` integer,
-  `org_id` integer,
-  `org_confermation` boolean,
   `email` varchar(255),
   `password` varchar(255)
 );
 
 CREATE TABLE `orgs` (
   `id` integer PRIMARY KEY,
-  `name` varchar(255),
-  `Confermation_code` varchar(255)
+  `name` varchar(255)
 );
 
 CREATE TABLE `org_members` (
   `user_id` integer,
-  `org_id` integer
+  `org_id` integer,
+  `org_confermation` boolean,
+  `org_status` integer
 );
 
 CREATE TABLE `jobs` (
@@ -32,6 +31,11 @@ CREATE TABLE `jobs` (
   `event` boolean,
   `server_id` integer,
   `job_type` integer
+);
+
+CREATE TABLE `servers` (
+  `id` integer PRIMARY KEY,
+  `location` varchar(255)
 );
 
 CREATE TABLE `job_types` (
@@ -91,8 +95,6 @@ CREATE TABLE `landing_zones` (
   `moon_id` integer
 );
 
-ALTER TABLE `users` ADD FOREIGN KEY (`org_id`) REFERENCES `orgs` (`id`);
-
 ALTER TABLE `org_members` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 ALTER TABLE `org_members` ADD FOREIGN KEY (`org_id`) REFERENCES `orgs` (`id`);
@@ -101,7 +103,9 @@ ALTER TABLE `jobs` ADD FOREIGN KEY (`creater_id`) REFERENCES `users` (`id`);
 
 ALTER TABLE `jobs` ADD FOREIGN KEY (`org_id`) REFERENCES `orgs` (`id`);
 
-ALTER TABLE `jobs` ADD FOREIGN KEY (`job_type`) REFERENCES `job_types` (`id`);
+ALTER TABLE `servers` ADD FOREIGN KEY (`id`) REFERENCES `jobs` (`server_id`);
+
+ALTER TABLE `job_types` ADD FOREIGN KEY (`id`) REFERENCES `jobs` (`job_type`);
 
 ALTER TABLE `workers` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
