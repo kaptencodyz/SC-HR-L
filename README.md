@@ -4,10 +4,12 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 First install the repo
 
+- With ssk key (recomended)
 ```bash
-# With ssk key (recomended)
 git clone git@github.com:kaptencodyz/SC-HR-L.git
-# With https
+```
+- With https
+```bash
 git clone https://github.com/kaptencodyz/SC-HR-L.git
 ```
 
