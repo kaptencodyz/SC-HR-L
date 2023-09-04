@@ -47,7 +47,7 @@ export const jobs = mysqlTable("jobs", {
 // ###############################################################################################
 
 // ---
-// This helper connects a user to every job they have redgistered to
+// This helper connects the users to the jobs they have registered to
 // ---
 export const workers = mysqlTable("workers", {
     user_id: int("user_id"),
