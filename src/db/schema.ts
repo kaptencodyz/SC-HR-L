@@ -4,7 +4,8 @@ import { mysqlTable,
     text,
     int,
     boolean,
-    datetime
+    datetime,
+    MySqlBoolean
 } from "drizzle-orm/mysql-core";
 
 
@@ -40,6 +41,82 @@ export const jobs = mysqlTable("jobs", {
     job_type: int("job_type"),
 });
 
+// ---
+// This table contain every org that is registered on the site
+// ---
+export const orgs = mysqlTable("orgs", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+});
+
+// ---
+// This table contain every server locations star citizen operates
+// ---
+export const servers = mysqlTable("servers", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+});
+
+// ---
+// This table contain every type of job that can be listed. For example mining or salvage
+// ---
+export const job_types = mysqlTable("job_types", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+});
+
+// ---
+// This table contain every type of position a job can have, for example turret operator or mining beam operator
+// ---
+export const job_positions = mysqlTable("job_positions", {
+    id: serial("id").primaryKey(),
+    position_title: varchar("position_title", { length: 50 }).notNull(),
+});
+
+// ---
+// This table contains all the flyable ships in star citizen
+// ---
+export const ships = mysqlTable("ships", {
+    id: serial("id").primaryKey(),
+    model: varchar("model", { length: 50 }).notNull(),
+    manufacturer_id: int("manufacturer_id")
+});
+
+// ---
+// This table contain every ship manufacturer in star citizen
+// ---
+export const manufacturers = mysqlTable("manufacturers", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull()
+});
+
+// ---
+// This table contain every landing_zone in star citizen
+// ---
+export const landing_zones = mysqlTable("landing_zones", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+    planet_id: int("planet_id"),
+    moon_id: int("moon_id")
+});
+
+// ---
+// This table contain every planet in star citizen
+// ---
+export const planets = mysqlTable("planets", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull()
+});
+
+// ---
+// This table contain every moon in star citizen
+// ---
+export const moons = mysqlTable("moons", {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+    planet_id: int("planet_id")
+});
+
 // ###############################################################################################
 
 
@@ -47,12 +124,44 @@ export const jobs = mysqlTable("jobs", {
 // ###############################################################################################
 
 // ---
-// This helper connects the users to the jobs they have registered to
+// This helper connects the tables "users" to "jobs"
 // ---
 export const workers = mysqlTable("workers", {
+    id: serial("id").primaryKey(),
     user_id: int("user_id"),
     job_id: int("job_id"),
     workposition_id: int("workposition_id"),
+});
+
+// ---
+// This helper connects the tables "users" to "orgs"
+// ---
+export const org_members = mysqlTable("org_members", {
+    id: serial("id").primaryKey(),
+    user_id: int("user_id"),
+    org_id: int("org_id"),
+    org_confermation: boolean("org_confermation"),
+    org_status: int("org_status"),
+});
+
+// ---
+// This helper connects the tables "job_positions" to "jobs" 
+// ---
+export const work_positions = mysqlTable("work_positions", {
+    id: serial("id").primaryKey(),
+    user_id: int("user_id"),
+    org_id: int("org_id"),
+    org_confermation: boolean("org_confermation"),
+    org_status: int("org_status"),
+});
+
+// ---
+// This helper connects the tables "ships" to "jobs"
+// ---
+export const job_ships = mysqlTable("job_ships", {
+    id: serial("id").primaryKey(),
+    ship_id: int("ship_id"),
+    job_id: int("job_id")
 });
 
 // ###############################################################################################
