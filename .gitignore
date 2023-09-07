@@ -6,6 +6,9 @@
 .pnp.js
 package-lock.json
 
+#db
+/src/db/migrations
+
 # testing
 /coverage
 
