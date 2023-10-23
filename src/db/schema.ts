@@ -149,6 +149,7 @@ export const org_members = mysqlTable("org_members", {
 // ---
 // This helper connects the tables "job_positions" to "jobs"
 // ---
+
 export const work_positions = mysqlTable("work_positions", {
   id: serial("id").primaryKey(),
   user_id: int("user_id"),
@@ -178,6 +179,8 @@ export const users = mysqlTable("user", {
     mode: "date",
     fsp: 3,
   }).defaultNow(),
+  password: varchar("password", { length: 100 }).notNull(),
+  handle: varchar("handle", { length: 50 }).notNull(),
   image: varchar("image", { length: 255 }),
 });
 
