@@ -1,11 +1,11 @@
+import { relations } from "drizzle-orm";
 import { mysqlTable,
     serial,
     varchar,
     text,
     int,
     boolean,
-    datetime,
-    MySqlBoolean
+    datetime
 } from "drizzle-orm/mysql-core";
 
 
@@ -80,6 +80,8 @@ export const ships = mysqlTable("ships", {
     id: serial("id").primaryKey(),
     model: varchar("model", { length: 50 }).notNull(),
     manufacturer_id: int("manufacturer_id")
+        .notNull()
+        .references(() => manufacturers.id)
 });
 
 // ---
@@ -163,5 +165,30 @@ export const job_ships = mysqlTable("job_ships", {
     ship_id: int("ship_id"),
     job_id: int("job_id")
 });
+
+// ###############################################################################################
+
+
+// This segment contains all (One to Many) database relations
+// ###############################################################################################
+
+
+// ---
+// This relation connects the tables "manufacturers" to "ships"
+// ---
+export const rel_manufacturers = relations(manufacturers, ({ many }) => ({
+    manufacturer: many(ships),
+}));
+
+// ---
+// This relation connects the tables "manufacturers" to "ships"
+// ---
+    export const rel_ships = relations(ships, ({ one }) => ({
+        manufacturer: one(manufacturers, {
+            fields: [ships.manufacturer_id],
+            references: [manufacturers.id],
+        }),
+    }));
+
 
 // ###############################################################################################
