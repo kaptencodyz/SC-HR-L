@@ -9,12 +9,12 @@ import { db } from "@/db/db";
 }
  */
 export default async function Home() {
-/*   const ships = await getShips();
- */  
-  await db.select
+  /*   const ships = await getShips();
+   */
+
   return (
     <>
-      <NavBar/>
+      <NavBar />
     </>
   );
 }

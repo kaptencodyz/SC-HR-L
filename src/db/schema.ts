@@ -8,7 +8,6 @@ import {
   boolean,
   datetime,
   timestamp,
-  primaryKey,
 } from "drizzle-orm/mysql-core";
 import type { AdapterAccount } from "@auth/core/adapters";
 
@@ -18,13 +17,13 @@ import type { AdapterAccount } from "@auth/core/adapters";
 // ---
 // This table contain all the data for every user of the application
 // ---
-export const credentialsUsers = mysqlTable("crendential_users", {
+/* export const credentialsUsers = mysqlTable("crendential_users", {
   id: serial("id").primaryKey(),
   handle: varchar("handle", { length: 50 }).notNull(),
   status: int("status"),
   email: varchar("email", { length: 100 }).notNull(),
   password: varchar("password", { length: 100 }).notNull(),
-});
+}); */
 
 export const users = mysqlTable("user", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
@@ -33,16 +32,36 @@ export const users = mysqlTable("user", {
   emailVerified: timestamp("emailVerified", {
     mode: "date",
     fsp: 3,
-  }).defaultNow(),
+  }),
   image: varchar("image", { length: 255 }),
+  password: varchar("password", { length: 255 }),
+  handle: varchar("handle", { length: 50 }),
+  isTwoFactorEnabled: boolean("isTwoFactorEnabled").default(false),
+});
+
+export const twoFactorToken = mysqlTable("twoFactorToken", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const passwordResetToken = mysqlTable("passwordResetToken", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const twoFactorConfirmation = mysqlTable("TwoFactorConfirmation", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  userId: varchar("user", { length: 255 }).notNull(),
 });
 
 export const accounts = mysqlTable(
   "account",
   {
-    userId: varchar("userId", { length: 255 })
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    userId: varchar("userId", { length: 255 }).notNull(),
     type: varchar("type", { length: 255 })
       .$type<AdapterAccount["type"]>()
       .notNull(),
@@ -57,29 +76,23 @@ export const accounts = mysqlTable(
     session_state: varchar("session_state", { length: 255 }),
   },
   (account) => ({
-    compoundKey: primaryKey(account.provider, account.providerAccountId),
+    compoundKey: (account.provider, account.providerAccountId),
   })
 );
 
 export const sessions = mysqlTable("session", {
   sessionToken: varchar("sessionToken", { length: 255 }).notNull().primaryKey(),
-  userId: varchar("userId", { length: 255 })
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("userId", { length: 255 }).notNull(),
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
-export const verificationTokens = mysqlTable(
-  "verificationToken",
-  {
-    identifier: varchar("identifier", { length: 255 }).notNull(),
-    token: varchar("token", { length: 255 }).notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
-  },
-  (vt) => ({
-    compoundKey: primaryKey(vt.identifier, vt.token),
-  })
-);
+export const verificationToken = mysqlTable("verificationToken", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
 // ---
 // This table contain all the data for every job posted on the application
 // ---
@@ -136,9 +149,9 @@ export const job_positions = mysqlTable("job_positions", {
 export const ships = mysqlTable("ships", {
   id: serial("id").primaryKey(),
   model: varchar("model", { length: 50 }).notNull(),
-  manufacturer_id: int("manufacturer_id")
-    .notNull()
-    .references(() => manufacturers.id),
+  manufacturer_id: int("manufacturer_id").notNull(),
+  /*     .references(() => manufacturers.id),
+   */
 });
 
 // ---
