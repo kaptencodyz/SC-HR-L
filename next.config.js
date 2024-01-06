@@ -1,8 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["argon2"],
-  },
-};
+const nextConfig = {};
 
 module.exports = nextConfig;

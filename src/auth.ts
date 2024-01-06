@@ -30,7 +30,6 @@ export const {
     Credentials({
       async authorize(credentials) {
         const result = signInSchema.safeParse(credentials);
-        console.log(result);
         if (result.success) {
           const { email, password } = result.data;
           console.log(email, password);
@@ -97,7 +96,6 @@ export const {
 
       return true;
     },
-
     async jwt({ token }) {
       if (!token.sub) return token;
 
