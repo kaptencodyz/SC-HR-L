@@ -10,6 +10,10 @@ import {
   getUserById,
 } from "./lib/actions/user.actions";
 import bcrypt from "bcryptjs";
+import { ExtendedUser } from "./lib/types";
+import { getTwoFactorConfirmationByUserId } from "./lib/actions/auth.actions";
+import { eq } from "drizzle-orm";
+import { twoFactorConfirmation } from "./db/schema";
 
 export const {
   handlers: { GET, POST },
@@ -48,25 +52,47 @@ export const {
   session: { strategy: "jwt" },
   pages: {
     signIn: "/auth/sign-in",
+    newUser: "/enter-handle",
   },
   callbacks: {
     async session({ session, token }) {
       if (token.sub && session.user) {
-        session.user.id = token.sub;
+        const user = session.user as ExtendedUser;
+        user.id = token.sub;
+        user.isOAuth = token.isOAuth as boolean;
+        user.handle = token.handle as string;
       }
       return session;
     },
     async signIn({ user, account }) {
-      //if user is oAuth user, allow sign-in without email verification
-      if (account?.provider !== "credentials") return true;
-
       const existingUser = await getUserById(user.id);
 
-      //prevent sign-in if email is not verified
-      if (!existingUser?.emailVerified) return false;
+      if (account?.provider !== "credentials") {
+        if (existingUser?.isTwoFactorEnabled) {
+          const confirmation = await getTwoFactorConfirmationByUserId(
+            existingUser.id
+          );
 
-      if (existingUser.isTwoFactorEnabled) {
-        const twoFactorConfirmation = "Ijdoiasjoidja";
+          if (!confirmation) return false;
+
+          await db
+            .delete(twoFactorConfirmation)
+            .where(eq(twoFactorConfirmation.userId, existingUser.id));
+        }
+      } else {
+        if (!existingUser?.emailVerified) return false;
+
+        if (existingUser.isTwoFactorEnabled) {
+          const confirmation = await getTwoFactorConfirmationByUserId(
+            existingUser.id
+          );
+
+          if (!confirmation) return false;
+
+          await db
+            .delete(twoFactorConfirmation)
+            .where(eq(twoFactorConfirmation.userId, existingUser.id));
+        }
       }
 
       return true;
@@ -80,7 +106,6 @@ export const {
       if (!existingUser) return token;
 
       const existingAccount = await getAccountByUserId(existingUser.id);
-
       token.isOAuth = !!existingAccount;
       token.name = existingUser.name;
       token.email = existingUser.email;

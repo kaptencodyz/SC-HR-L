@@ -9,7 +9,7 @@ export default async function Protected() {
   return (
     <div className="h-screen">
       <h1>Protected Page</h1>
-      <p>{JSON.stringify(session)}</p>
+      <p>{JSON.stringify(session?.user)}</p>
       <SignOutBtn />
     </div>
   );

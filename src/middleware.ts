@@ -7,8 +7,9 @@ import {
   authRoutes,
   publicRoutes,
 } from "@/routes";
+import { ExtendedUser } from "./lib/types";
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
 
@@ -21,8 +22,22 @@ export default auth((req) => {
   }
 
   if (isAuthRoute) {
+    if (
+      isLoggedIn &&
+      !(req.auth?.user as ExtendedUser).handle &&
+      nextUrl.pathname === "/auth/enter-handle"
+    ) {
+      return null;
+    }
     if (isLoggedIn) {
       return Response.redirect(new URL(DEFAULT_LOGIN_REDIRECT, nextUrl));
+    }
+    return null;
+  }
+
+  if (isLoggedIn && !isPublicRoute) {
+    if (!(req.auth?.user as ExtendedUser).handle) {
+      return Response.redirect(new URL("/auth/enter-handle", nextUrl));
     }
     return null;
   }

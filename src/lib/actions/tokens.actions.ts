@@ -1,9 +1,14 @@
 "use server";
 
 import { db } from "@/db/db";
-import { passwordResetToken, verificationToken } from "@/db/schema";
+import {
+  passwordResetToken,
+  twoFactorToken,
+  verificationToken,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 export async function getVerificationTokenByEmail(email: string) {
   try {
@@ -44,6 +49,32 @@ export async function getPasswordResetTokenByToken(token: string) {
   }
 }
 
+export async function getTwoFactorTokenByToken(token: string) {
+  try {
+    const existingToken = await db
+      .select()
+      .from(twoFactorToken)
+      .where(eq(twoFactorToken.token, token));
+
+    return existingToken[0];
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function getTwoFactorTokenByEmail(email: string) {
+  try {
+    const existingToken = await db
+      .select()
+      .from(twoFactorToken)
+      .where(eq(twoFactorToken.email, email));
+
+    return existingToken[0];
+  } catch (error) {
+    return null;
+  }
+}
+
 export async function getPasswordResetTokenByEmail(email: string) {
   try {
     const token = await db
@@ -61,7 +92,7 @@ export async function generateVerificationToken(email: string) {
   const token = uuidv4();
   const expires = new Date(new Date().getTime() + 3600 * 2000);
   const existingToken = await getVerificationTokenByEmail(email);
-  
+
   if (existingToken) {
     await db
       .delete(verificationToken)
@@ -92,6 +123,7 @@ export async function generateVerificationToken(email: string) {
 export async function generatePasswordResetToken(email: string) {
   const token = uuidv4();
   const expires = new Date(new Date().getTime() + 3600 * 2000);
+  //TODO: Later change to 15 minutes
   const existingToken = await getPasswordResetTokenByEmail(email);
   if (existingToken) {
     await db
@@ -112,4 +144,28 @@ export async function generatePasswordResetToken(email: string) {
     .where(eq(passwordResetToken.email, email));
 
   return newPasswordResetToken[0];
+}
+
+export async function generateTwoFactorToken(email: string) {
+  const token = crypto.randomInt(100_000, 1_000_000).toString();
+  const expires = new Date(new Date().getTime() + 3600 * 2000);
+
+  const existingToken = await getTwoFactorTokenByEmail(email);
+
+  if (existingToken) {
+    await db
+      .delete(twoFactorToken)
+      .where(eq(twoFactorToken.id, existingToken.id));
+  }
+
+  await db
+    .insert(twoFactorToken)
+    .values({ id: uuidv4(), email, token, expires });
+
+  const newTwoFactorToken = await db
+    .select()
+    .from(twoFactorToken)
+    .where(eq(twoFactorToken.email, email));
+
+  return newTwoFactorToken[0];
 }

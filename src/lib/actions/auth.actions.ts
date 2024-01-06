@@ -8,16 +8,28 @@ import {
 } from "../validators";
 import { getUserByEmail } from "./user.actions";
 import { db } from "@/db/db";
-import { passwordResetToken, users, verificationToken } from "@/db/schema";
+import {
+  passwordResetToken,
+  twoFactorConfirmation,
+  twoFactorToken,
+  users,
+  verificationToken,
+} from "@/db/schema";
 import {
   generatePasswordResetToken,
+  generateTwoFactorToken,
   generateVerificationToken,
   getPasswordResetTokenByToken,
+  getTwoFactorTokenByEmail,
   getVerificationTokenByToken,
 } from "./tokens.actions";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./mail.actions";
+import {
+  sendPasswordResetEmail,
+  sendTwoFactorTokenEmail,
+  sendVerificationEmail,
+} from "./mail.actions";
 import { eq } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
@@ -71,7 +83,7 @@ export async function signIns(data: unknown) {
     return { error: result.error.issues.map((issue: any) => issue) };
   }
 
-  const { email, password } = result.data;
+  const { email, password, code } = result.data;
 
   const existingUser = await getUserByEmail(email);
 
@@ -93,6 +105,50 @@ export async function signIns(data: unknown) {
   }
 
   if (existingUser.isTwoFactorEnabled && existingUser.email) {
+    if (code) {
+      const existingToken = await getTwoFactorTokenByEmail(existingUser.email);
+      if (!existingToken) {
+        return { error: "Invalid code" };
+      }
+
+      if (existingToken.token !== code) {
+        return { error: "Invalid code" };
+      }
+
+      const hasExpired =
+        new Date(existingToken.expires).getTime() < new Date().getTime();
+
+      if (hasExpired) {
+        return { error: "Code has expired" };
+      }
+
+      await db
+        .delete(twoFactorToken)
+        .where(eq(twoFactorToken.id, existingToken.id));
+
+      const existingConfirmation = await getTwoFactorConfirmationByUserId(
+        existingUser.id
+      );
+
+      if (existingConfirmation) {
+        await db
+          .delete(twoFactorConfirmation)
+          .where(eq(twoFactorConfirmation.id, existingConfirmation.id));
+      }
+
+      await db.insert(twoFactorConfirmation).values({
+        id: uuidv4(),
+        userId: existingUser.id,
+      });
+    } else {
+      const twoFactorToken = await generateTwoFactorToken(existingUser.email);
+      await sendTwoFactorTokenEmail({
+        email: twoFactorToken.email,
+        token: twoFactorToken.token,
+      });
+
+      return { twoFactor: true };
+    }
   }
 
   try {
@@ -135,10 +191,13 @@ export async function verifyEmail(token: string) {
     return { error: "User does not exist" };
   }
 
-  await db.update(users).set({
-    emailVerified: new Date(),
-    email: existingToken.email,
-  });
+  await db
+    .update(users)
+    .set({
+      emailVerified: new Date(),
+      email: existingToken.email,
+    })
+    .where(eq(users.email, existingToken.email));
 
   await db
     .delete(verificationToken)
@@ -222,4 +281,17 @@ export async function newPassword({
     console.log("Token deleted and success");
     return { success: "Password updated" };
   } catch (error) {}
+}
+
+export async function getTwoFactorConfirmationByUserId(userId: string) {
+  try {
+    const confirmation = await db
+      .select()
+      .from(twoFactorConfirmation)
+      .where(eq(twoFactorConfirmation.userId, userId));
+
+    return confirmation[0];
+  } catch (error) {
+    return null;
+  }
 }

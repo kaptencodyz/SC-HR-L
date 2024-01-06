@@ -29,9 +29,9 @@ export async function getAccountByUserId(userId: string) {
     const account = await db
       .select()
       .from(accounts)
-      .where(eq(users.id, userId));
+      .where(eq(accounts.userId, userId));
 
-      return account[0];
+    return account[0];
   } catch (error) {
     return null;
   }
