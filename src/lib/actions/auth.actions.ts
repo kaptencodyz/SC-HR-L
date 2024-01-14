@@ -1,6 +1,7 @@
 "use server";
 import * as z from "zod";
 import {
+  handleSchema,
   newPasswordSchema,
   resetPasswordSchema,
   signInSchema,
@@ -31,9 +32,11 @@ import {
   sendVerificationEmail,
 } from "./mail.actions";
 import { eq } from "drizzle-orm";
-import { signIn } from "@/auth";
+import { auth, signIn } from "@/auth";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { AuthError } from "next-auth";
+import axios from "axios";
+import { revalidatePath } from "next/cache";
 
 export async function signUp(data: unknown) {
   try {
@@ -293,5 +296,56 @@ export async function getTwoFactorConfirmationByUserId(userId: string) {
     return confirmation[0];
   } catch (error) {
     return null;
+  }
+}
+
+export async function addHandle(d: unknown) {
+  try {
+    const result = handleSchema.safeParse(d);
+
+    if (!result.success) {
+      return {
+        validationError: true,
+      };
+    }
+    console.log("Result: ", result);
+
+    const { handle } = result.data;
+
+    const [{ data }, session] = await Promise.all([
+      axios.get(
+        `https://api.starcitizen-api.com/${process.env.STAR_CITIZEN_API_KEY}/v1/live/user/${handle}`
+      ),
+      auth(),
+    ]);
+
+    if (!session?.user) {
+      return {
+        unauthorized: true,
+      };
+    }
+    console.log("Data: ", data);
+
+    const fetchedHandle = data.data.profile.handle;
+    console.log("Fetched handle: ", fetchedHandle);
+
+    if (!fetchedHandle) {
+      return {
+        handleError: true,
+      };
+    }
+    await db
+      .update(users)
+      .set({ handle: fetchedHandle })
+      .where(eq(users.id, session.user.id));
+
+    revalidatePath("/auth/enter-handle");
+    return {
+      success: true,
+    };
+  } catch (error) {
+    return {
+      error: true,
+    };
   }
 }
