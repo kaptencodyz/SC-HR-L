@@ -97,18 +97,28 @@ export const verificationToken = mysqlTable("verificationToken", {
 // This table contain all the data for every job posted on the application
 // ---
 export const jobs = mysqlTable("jobs", {
-  id: serial("id").primaryKey(),
-  description: text("description"),
-  org_id: int("org_id"),
-  landing_zone: int("landing_zone"),
-  avalible_positions: int("avalible_positions").notNull(),
-  creater_id: int("creater_id"),
-  created: datetime("created"),
-  start_time: datetime("start_time"),
-  end_time: datetime("end_time"),
-  event: boolean("event"),
-  server_id: int("server_id"),
-  job_type: int("job_type"),
+    id: serial("id").primaryKey(),
+    description: text("description"),
+    org_id: int("org_id")
+        .notNull()
+        .references(() => orgs.id),
+    landing_zone: int("landing_zone")
+        .notNull()
+        .references(() => landing_zones.id),
+    avalible_positions: int("avalible_positions").notNull(),
+    creator_id: int("creater_id")
+        .notNull()
+        .references(() => users.id),
+    created: datetime("created"),
+    start_time: datetime("start_time"),
+    end_time: datetime("end_time"),
+    event: boolean("event"),
+    server_id: int("server_id")
+        .notNull()
+        .references(() => servers.id),
+    job_type: int("job_type")
+        .notNull()
+        .references(() => job_types.id),
 });
 
 // ---
@@ -166,10 +176,13 @@ export const manufacturers = mysqlTable("manufacturers", {
 // This table contain every landing_zone in star citizen
 // ---
 export const landing_zones = mysqlTable("landing_zones", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 50 }).notNull(),
-  planet_id: int("planet_id"),
-  moon_id: int("moon_id"),
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+    planet_id: int("planet_id")
+        .notNull()
+        .references(() => planets.id),
+    moon_id: int("moon_id")
+        .references(() => moons.id)
 });
 
 // ---
@@ -184,9 +197,11 @@ export const planets = mysqlTable("planets", {
 // This table contain every moon in star citizen
 // ---
 export const moons = mysqlTable("moons", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 50 }).notNull(),
-  planet_id: int("planet_id"),
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 50 }).notNull(),
+    planet_id: int("planet_id")
+        .notNull()
+        .references(() => planets.id)
 });
 
 // ###############################################################################################
@@ -198,41 +213,56 @@ export const moons = mysqlTable("moons", {
 // This helper connects the tables "users" to "jobs"
 // ---
 export const workers = mysqlTable("workers", {
-  id: serial("id").primaryKey(),
-  user_id: int("user_id"),
-  job_id: int("job_id"),
-  workposition_id: int("workposition_id"),
+    id: serial("id").primaryKey(),
+    user_id: int("user_id")
+        .notNull()
+        .references(() => users.id),
+    job_id: int("job_id")
+        .notNull()
+        .references(() => jobs.id),
+    work_position_id: int("work_position_id")
+        .notNull()
+        .references(() => work_positions.id),
 });
 
 // ---
 // This helper connects the tables "users" to "orgs"
 // ---
 export const org_members = mysqlTable("org_members", {
-  id: serial("id").primaryKey(),
-  user_id: int("user_id"),
-  org_id: int("org_id"),
-  org_confermation: boolean("org_confermation"),
-  org_status: int("org_status"),
+    id: serial("id").primaryKey(),
+    user_id: int("user_id")
+        .notNull()
+        .references(() => users.id),
+    org_id: int("org_id")
+        .notNull()
+        .references(() => orgs.id),
+    org_confermation: boolean("org_confermation"),
+    org_status: int("org_status"),
 });
 
 // ---
 // This helper connects the tables "job_positions" to "jobs"
 // ---
 export const work_positions = mysqlTable("work_positions", {
-  id: serial("id").primaryKey(),
-  user_id: int("user_id"),
-  org_id: int("org_id"),
-  org_confermation: boolean("org_confermation"),
-  org_status: int("org_status"),
+    id: serial("id").primaryKey(),
+    position_id: int("position_id")
+        .notNull()
+        .references(() => job_positions.id),
+    job_id: int("job_id"),
+    number_of_positions: int("number_of_positions")
 });
 
 // ---
 // This helper connects the tables "ships" to "jobs"
 // ---
 export const job_ships = mysqlTable("job_ships", {
-  id: serial("id").primaryKey(),
-  ship_id: int("ship_id"),
-  job_id: int("job_id"),
+    id: serial("id").primaryKey(),
+    ship_id: int("ship_id")
+        .notNull()
+        .references(() => ships.id),
+    job_id: int("job_id")
+        .notNull()
+        .references(() => jobs.id)
 });
 
 // ###############################################################################################
@@ -240,21 +270,198 @@ export const job_ships = mysqlTable("job_ships", {
 // This segment contains all (One to Many) database relations
 // ###############################################################################################
 
+// Job related relations
+// ###############################################################################################
+
 // ---
-// This relation connects the tables "manufacturers" to "ships"
+// jobs relations
+// ---
+export const rel_jobs = relations(jobs, ({ one, many }) => ({
+    creator: one(users, {
+        fields: [jobs.creator_id],
+        references: [users.id]
+    }),
+    org: one(orgs, {
+        fields: [jobs.org_id],
+        references: [orgs.id]
+    }),
+    landing_zone: one(landing_zones, {
+        fields: [jobs.landing_zone],
+        references: [landing_zones.id]
+    }),
+    server: one(servers, {
+        fields: [jobs.server_id],
+        references: [servers.id]
+    }),
+    job_type: one(job_types, {
+        fields: [jobs.job_type],
+        references: [job_types.id]
+    }),
+    workers: many(workers),
+    work_positions: many(work_positions),
+    ships: many(job_ships)
+}))
+
+
+// ---
+// workers relations
+// ---
+export const rel_workers = relations(workers, ({ one }) => ({
+    user: one(users, {
+        fields: [workers.user_id],
+        references: [users.id]
+    }),
+    work_position: one(work_positions, {
+        fields: [workers.work_position_id],
+        references: [work_positions.id]
+    }),
+    job: one(jobs, {
+        fields: [workers.job_id],
+        references: [jobs.id]
+    })
+}))
+
+// ---
+// work_positions relations
+// ---
+export const rel_work_positions = relations(work_positions, ({ one, many }) => ({
+    job: one(jobs, {
+        fields: [work_positions.job_id],
+        references: [jobs.id]
+    }),
+    position: one(job_positions, {
+        fields: [work_positions.position_id],
+        references: [job_positions.id]
+    }),
+    workers: many(workers)
+}))
+
+// ---
+// job_positions relations
+// ---
+export const rel_job_positions = relations(job_positions, ({ many }) => ({
+    work_positions: many(work_positions)
+}));
+
+// ---
+// servers relations
+// ---
+export const rel_servers = relations(servers, ({ many }) => ({
+    server: many(jobs), 
+}));
+
+// ---
+// job_types relations
+// ---
+export const rel_job_types = relations(job_types, ({ many }) => ({
+    job: many(jobs),
+}));
+
+
+// User related relations
+// ###############################################################################################
+
+// ---
+// users relations
+// ---
+export const rel_users = relations(users, ({ many }) => ({
+    worker: many(workers),
+    creator: many(jobs)
+}));
+
+// ---
+// orgs relations
+// ---
+export const rel_orgs = relations(orgs, ({ many }) => ({
+    members: many(org_members),
+    org_jobs: many(jobs)
+}));
+
+// ---
+// org_members relations
+// ---
+export const rel_org_members = relations(org_members, ({ one }) => ({
+    user: one(users, {
+        fields: [org_members.user_id],
+        references: [users.id]
+    }),
+    org: one(orgs, {
+        fields: [org_members.org_id],
+        references: [orgs.id]
+    })
+}));
+
+
+// Ship related relations
+// ###############################################################################################
+
+// ---
+// job_ships relations
+// ---
+export const rel_job_ships = relations(job_ships, ({ one }) => ({
+    job: one(jobs, {
+        fields: [job_ships.job_id],
+        references: [jobs.id]
+    }),
+    ship: one(ships, {
+        fields: [job_ships.ship_id],
+        references: [ships.id]
+    })
+}));
+
+// ---
+// manufacturers relations
 // ---
 export const rel_manufacturers = relations(manufacturers, ({ many }) => ({
   manufacturer: many(ships),
 }));
 
 // ---
-// This relation connects the tables "manufacturers" to "ships"
+// ships relations
 // ---
 export const rel_ships = relations(ships, ({ one }) => ({
-  manufacturer: one(manufacturers, {
-    fields: [ships.manufacturer_id],
-    references: [manufacturers.id],
-  }),
+    manufacturer: one(manufacturers, {
+        fields: [ships.manufacturer_id],
+        references: [manufacturers.id]
+    }),
+}));
+
+
+// Landing zone related relations
+// ###############################################################################################
+
+// ---
+// landing_zones relations
+// ---
+export const rel_landing_zones = relations(landing_zones, ({ one, many }) => ({
+    planet: one(planets, {
+        fields: [landing_zones.planet_id],
+        references: [planets.id]
+    }),
+    moon: one(moons, {
+        fields: [landing_zones.moon_id],
+        references: [moons.id]
+    }),
+    jobs: many(jobs),
+}));
+
+// ---
+// landing_zones relations
+// ---
+export const rel_planets = relations(planets, ({ many }) => ({
+    moons: many(moons),
+    landing_zones: many(landing_zones)
+}));
+
+// ---
+// landing_zones relations
+// ---
+export const rel_moons = relations(moons, ({ one, many }) => ({
+    planet: one(planets, {
+        fields: [moons.planet_id],
+        references: [planets.id]
+    }),
+    landing_zone: many(landing_zones)
 }));
 
 // ###############################################################################################
