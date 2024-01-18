@@ -1,13 +1,15 @@
 import { relations } from "drizzle-orm";
-import { mysqlTable,
-    serial,
-    varchar,
-    text,
-    int,
-    boolean,
-    datetime
+import {
+  mysqlTable,
+  serial,
+  varchar,
+  text,
+  int,
+  boolean,
+  datetime,
+  timestamp,
 } from "drizzle-orm/mysql-core";
-
+import type { AdapterAccount } from "@auth/core/adapters";
 
 // This segment contains all the primary tables that holds the information data of the website
 // ###############################################################################################
@@ -15,12 +17,80 @@ import { mysqlTable,
 // ---
 // This table contain all the data for every user of the application
 // ---
-export const users = mysqlTable("users", {
-    id: serial("id").primaryKey(),
-    handle: varchar("handle", { length: 50 }).notNull(),
-    status: int("status"),
-    email: varchar("email", { length: 100 }).notNull(),
-    password: varchar("password", { length: 100 }).notNull(),
+/* export const credentialsUsers = mysqlTable("crendential_users", {
+  id: serial("id").primaryKey(),
+  handle: varchar("handle", { length: 50 }).notNull(),
+  status: int("status"),
+  email: varchar("email", { length: 100 }).notNull(),
+  password: varchar("password", { length: 100 }).notNull(),
+}); */
+
+export const users = mysqlTable("user", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }).notNull(),
+  emailVerified: timestamp("emailVerified", {
+    mode: "date",
+    fsp: 3,
+  }),
+  image: varchar("image", { length: 255 }),
+  password: varchar("password", { length: 255 }),
+  handle: varchar("handle", { length: 50 }),
+  isTwoFactorEnabled: boolean("isTwoFactorEnabled").default(false),
+});
+
+export const twoFactorToken = mysqlTable("twoFactorToken", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const passwordResetToken = mysqlTable("passwordResetToken", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const twoFactorConfirmation = mysqlTable("TwoFactorConfirmation", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  userId: varchar("user", { length: 255 }).notNull(),
+});
+
+export const accounts = mysqlTable(
+  "account",
+  {
+    userId: varchar("userId", { length: 255 }).notNull(),
+    type: varchar("type", { length: 255 })
+      .$type<AdapterAccount["type"]>()
+      .notNull(),
+    provider: varchar("provider", { length: 255 }).notNull(),
+    providerAccountId: varchar("providerAccountId", { length: 255 }).notNull(),
+    refresh_token: varchar("refresh_token", { length: 255 }),
+    access_token: varchar("access_token", { length: 255 }),
+    expires_at: int("expires_at"),
+    token_type: varchar("token_type", { length: 255 }),
+    scope: varchar("scope", { length: 255 }),
+    id_token: varchar("id_token", { length: 2048 }),
+    session_state: varchar("session_state", { length: 255 }),
+  },
+  (account) => ({
+    compoundKey: (account.provider, account.providerAccountId),
+  })
+);
+
+export const sessions = mysqlTable("session", {
+  sessionToken: varchar("sessionToken", { length: 255 }).notNull().primaryKey(),
+  userId: varchar("userId", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+});
+
+export const verificationToken = mysqlTable("verificationToken", {
+  id: varchar("id", { length: 255 }).notNull().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
 // ---
@@ -55,51 +125,51 @@ export const jobs = mysqlTable("jobs", {
 // This table contain every org that is registered on the site
 // ---
 export const orgs = mysqlTable("orgs", {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 50 }).notNull(),
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(),
 });
 
 // ---
 // This table contain every server locations star citizen operates
 // ---
 export const servers = mysqlTable("servers", {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 50 }).notNull(),
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(),
 });
 
 // ---
 // This table contain every type of job that can be listed. For example mining or salvage
 // ---
 export const job_types = mysqlTable("job_types", {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 50 }).notNull(),
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(),
 });
 
 // ---
 // This table contain every type of position a job can have, for example turret operator or mining beam operator
 // ---
 export const job_positions = mysqlTable("job_positions", {
-    id: serial("id").primaryKey(),
-    position_title: varchar("position_title", { length: 50 }).notNull(),
+  id: serial("id").primaryKey(),
+  position_title: varchar("position_title", { length: 50 }).notNull(),
 });
 
 // ---
 // This table contains all the flyable ships in star citizen
 // ---
 export const ships = mysqlTable("ships", {
-    id: serial("id").primaryKey(),
-    model: varchar("model", { length: 50 }).notNull(),
-    manufacturer_id: int("manufacturer_id")
-        .notNull()
-        .references(() => manufacturers.id)
+  id: serial("id").primaryKey(),
+  model: varchar("model", { length: 50 }).notNull(),
+  manufacturer_id: int("manufacturer_id").notNull(),
+  /*     .references(() => manufacturers.id),
+   */
 });
 
 // ---
 // This table contain every ship manufacturer in star citizen
 // ---
 export const manufacturers = mysqlTable("manufacturers", {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 50 }).notNull()
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(),
 });
 
 // ---
@@ -119,8 +189,8 @@ export const landing_zones = mysqlTable("landing_zones", {
 // This table contain every planet in star citizen
 // ---
 export const planets = mysqlTable("planets", {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 50 }).notNull()
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(),
 });
 
 // ---
@@ -135,7 +205,6 @@ export const moons = mysqlTable("moons", {
 });
 
 // ###############################################################################################
-
 
 // This segment contains all the helper tables to handale relations between two primary tables
 // ###############################################################################################
@@ -172,7 +241,7 @@ export const org_members = mysqlTable("org_members", {
 });
 
 // ---
-// This helper connects the tables "job_positions" to "jobs" 
+// This helper connects the tables "job_positions" to "jobs"
 // ---
 export const work_positions = mysqlTable("work_positions", {
     id: serial("id").primaryKey(),
@@ -181,7 +250,6 @@ export const work_positions = mysqlTable("work_positions", {
         .references(() => job_positions.id),
     job_id: int("job_id"),
     number_of_positions: int("number_of_positions")
-    
 });
 
 // ---
@@ -198,7 +266,6 @@ export const job_ships = mysqlTable("job_ships", {
 });
 
 // ###############################################################################################
-
 
 // This segment contains all (One to Many) database relations
 // ###############################################################################################
@@ -346,7 +413,7 @@ export const rel_job_ships = relations(job_ships, ({ one }) => ({
 // manufacturers relations
 // ---
 export const rel_manufacturers = relations(manufacturers, ({ many }) => ({
-    manufacturer: many(ships),
+  manufacturer: many(ships),
 }));
 
 // ---
@@ -396,6 +463,5 @@ export const rel_moons = relations(moons, ({ one, many }) => ({
     }),
     landing_zone: many(landing_zones)
 }));
-
 
 // ###############################################################################################
